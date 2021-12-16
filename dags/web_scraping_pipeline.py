@@ -1,18 +1,26 @@
-import requests
-from requests import get
-from bs4 import BeautifulSoup
+import os
 import re
-import pandas as pd
-import warnings
 import time
+import warnings
 from datetime import datetime, timedelta
+from io import StringIO
+from time import perf_counter
+
+import boto3
+import pandas as pd
+import requests
 from airflow import DAG
+from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python import PythonOperator, PythonVirtualenvOperator
 from airflow.utils.dates import days_ago
-from time import perf_counter
+from bs4 import BeautifulSoup
+from requests import get
 
-warnings.filterwarnings("ignore")
+BUCKET_NAME = Variable.get("BUCKET_NAME")
+AWS_REGION = Variable.get("AWS_REGION")
+AWS_ACCESS_KEY_ID = Variable.get("AWS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = Variable.get("AWS_SECRET_KEY")
 
 
 def get_page():
@@ -37,7 +45,7 @@ def regex_dates(strings):
         match = re.search(r"(\d+/\d+/\d+)", strings)
     except:
         match = None
-    return match.group(1)
+    return match.group()
 
 
 def read_table():
@@ -52,7 +60,7 @@ def read_table():
         return None
 
 
-def process_data():
+def scraping_and_process():
     dataframe = read_table()
     strings = get_page()
 
@@ -85,14 +93,24 @@ def process_data():
         inplace=True,
     )
 
+    df["ask"] = pd.to_numeric(df["ask"], downcast="float")
+    df["bid"] = pd.to_numeric(df["bid"], downcast="float")
+
     df["spread"] = df["ask"] - df["bid"]
 
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer)
+
+    s3 = boto3.client(
+        service_name="s3",
+        region_name=AWS_REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    )
+
+    s3.put_object(Body=csv_buffer.getvalue(), Bucket=BUCKET_NAME, Key="ptax.csv")
+
     return df
-
-
-def save_csv():
-    files = process_data()
-    files.to_csv("/home/eden/jsons/currency.csv", index=False, encoding="utf-8")
 
 
 default_args = {
@@ -115,4 +133,15 @@ with DAG(
     get_page_task = PythonOperator(
         task_id="get_page_task",
         python_callable=get_page,
+        do_xcom_push=False,
+        dag=dag,
     )
+
+    scraping_and_process_data = PythonOperator(
+        task_id="scraping_and_process_data",
+        python_callable=scraping_and_process,
+        do_xcom_push=False,
+        dag=dag,
+    )
+
+    get_page_task >> scraping_and_process_data
