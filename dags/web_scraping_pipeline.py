@@ -17,10 +17,10 @@ from airflow.utils.dates import days_ago
 from bs4 import BeautifulSoup
 from requests import get
 
-BUCKET_NAME = Variable.get("BUCKET_NAME")
-AWS_REGION = Variable.get("AWS_REGION")
-AWS_ACCESS_KEY_ID = Variable.get("AWS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = Variable.get("AWS_SECRET_KEY")
+BUCKET_NAME = Variable.get("bucket_name")
+AWS_REGION = Variable.get("region")
+AWS_ACCESS_KEY_ID = Variable.get("key_id")
+AWS_SECRET_ACCESS_KEY = Variable.get("secret_key")
 
 
 def get_page():
@@ -99,7 +99,7 @@ def scraping_and_process():
     df["spread"] = df["ask"] - df["bid"]
 
     csv_buffer = StringIO()
-    df.to_csv(csv_buffer)
+    df.to_csv(path_or_buf=csv_buffer, index=False)
 
     s3 = boto3.client(
         service_name="s3",
