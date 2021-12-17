@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+/logs
+/logs/scheduler
 
 # C extensions
 *.so

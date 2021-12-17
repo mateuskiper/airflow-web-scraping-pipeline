@@ -52,6 +52,8 @@ x-airflow-common:
     AIRFLOW_VAR_REGION: ${REGION}
     AIRFLOW_VAR_KEY_ID: ${ACCESS_KEY_ID}
     AIRFLOW_VAR_SECRET_KEY: ${SECRET_ACCESS_KEY}
+    AIRFLOW_VAR_MONGO_HOST: ${MONGO_HOST}
+    AIRFLOW_VAR_MONGO_PORT: ${MONGO_PORT}
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
