@@ -128,19 +128,14 @@ def s3_to_mongo(**context):
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
     )
 
-    # task_instance = context["task_instance"]
-    # task_instance.xcom_push(
-    #    key="s3_file_name", value=f"ptax_{str(df['date'][0]).replace('/', '_')}.csv"
-    # )
-    # task_instance.xcom_push(key="s3_bucket_name", value=str(BUCKET_NAME))
-
-    bucket_name = "ptax-pipeline"
-    object_key = "ptax_17_12_2021.csv"
+    task_instance = context["task_instance"]
+    object_key = task_instance.xcom_pull(key="s3_file_name")
+    bucket_name = task_instance.xcom_pull(key="s3_bucket_name")
 
     csv_obj = s3.get_object(Bucket=bucket_name, Key=object_key)
-    reader = csv.DictReader(csv_obj["Body"])
-
     csv_string = csv_obj["Body"].read().decode("utf-8")
+
+    reader = csv.DictReader(StringIO(csv_string))
     header = pd.read_csv(StringIO(csv_string)).columns
 
     mongo_client = MongoClient(host="mongo", port=27017)
@@ -171,13 +166,6 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    get_page_task = PythonOperator(
-        task_id="get_page_task",
-        python_callable=get_page,
-        do_xcom_push=False,
-        dag=dag,
-    )
-
     scraping_and_process_data = PythonOperator(
         task_id="scraping_and_process_data",
         python_callable=scraping_and_process,
@@ -192,4 +180,4 @@ with DAG(
         dag=dag,
     )
 
-    get_page_task >> scraping_and_process_data >> s3_to_mongo_task
+    scraping_and_process_data >> s3_to_mongo_task
