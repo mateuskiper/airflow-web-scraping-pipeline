@@ -52,8 +52,7 @@ x-airflow-common:
     AIRFLOW_VAR_REGION: ${REGION}
     AIRFLOW_VAR_KEY_ID: ${ACCESS_KEY_ID}
     AIRFLOW_VAR_SECRET_KEY: ${SECRET_ACCESS_KEY}
-    AIRFLOW_VAR_MONGO_HOST: ${MONGO_HOST}
-    AIRFLOW_VAR_MONGO_PORT: ${MONGO_PORT}
+    AIRFLOW_VAR_MONGO_URI: ${MONGO_URI}
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
@@ -74,8 +73,18 @@ x-airflow-common:
       condition: service_healthy
     postgres:
       condition: service_healthy
+  links:
+    - mongo
 
 services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongodb/data:/data/db
+
   postgres:
     image: postgres:13
     environment:

@@ -21,9 +21,6 @@ AWS_REGION = Variable.get("region")
 AWS_ACCESS_KEY_ID = Variable.get("key_id")
 AWS_SECRET_ACCESS_KEY = Variable.get("secret_key")
 
-MONGO_HOST = Variable.get("mongo_host")
-MONGO_PORT = Variable.get("mongo_port")
-
 
 def get_page():
     url = "https://ptax.bcb.gov.br/ptax_internet/consultarTodasAsMoedas.do?method=consultaTodasMoedas"
@@ -146,7 +143,7 @@ def s3_to_mongo(**context):
     csv_string = csv_obj["Body"].read().decode("utf-8")
     header = pd.read_csv(StringIO(csv_string)).columns
 
-    mongo_client = MongoClient(host=MONGO_HOST, port=MONGO_PORT)
+    mongo_client = MongoClient(host="mongo", port=27017)
     db = mongo_client.ptax
 
     for each in reader:
